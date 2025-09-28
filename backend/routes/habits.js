@@ -41,9 +41,12 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Habit not found or unauthorized' });
     }
 
-    const updatedHabit = await Habit.findByIdAndUpdate(
-      req.params.id,
-      req.body,
+    // Sanitize update payload - never allow userId to be changed
+    const { userId, ...sanitizedUpdate } = req.body;
+    
+    const updatedHabit = await Habit.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId }, // Enforce ownership in query
+      sanitizedUpdate,
       { new: true }
     );
     res.json(updatedHabit);
@@ -57,13 +60,16 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     console.log('Deleting habit:', req.params.id, 'for user:', req.userId);
-    const habit = await Habit.findOne({ _id: req.params.id, userId: req.userId });
     
-    if (!habit) {
+    const deletedHabit = await Habit.findOneAndDelete({ 
+      _id: req.params.id, 
+      userId: req.userId 
+    });
+    
+    if (!deletedHabit) {
       return res.status(404).json({ error: 'Habit not found or unauthorized' });
     }
 
-    await Habit.findByIdAndDelete(req.params.id);
     res.json({ message: 'Habit deleted successfully' });
   } catch (err) {
     console.error('Error deleting habit:', err);

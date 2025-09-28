@@ -33,6 +33,8 @@ const connectDB = async () => {
 };
 
 // Firebase Admin SDK initialization
+let isFirebaseInitialized = false;
+
 const initializeFirebase = () => {
   try {
     console.log('Initializing Firebase Admin SDK...');
@@ -68,12 +70,15 @@ const initializeFirebase = () => {
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL
         })
       });
+      
+      isFirebaseInitialized = true;
     }
     
     console.log('✅ Firebase Admin SDK initialized successfully');
   } catch (err) {
     console.error('❌ Firebase initialization error:', err.message);
     console.log('🔄 Starting server without Firebase authentication (auth routes will be disabled)');
+    isFirebaseInitialized = false;
     // Don't exit - continue running server without Firebase auth
   }
 };
@@ -81,6 +86,14 @@ const initializeFirebase = () => {
 // Authentication middleware
 const verifyToken = async (req, res, next) => {
   try {
+    // Check if Firebase is initialized
+    if (!isFirebaseInitialized) {
+      return res.status(503).json({ 
+        error: 'Authentication service unavailable',
+        message: 'Firebase Admin SDK not initialized. Please check server configuration.' 
+      });
+    }
+
     const token = req.headers.authorization?.split('Bearer ')[1];
     
     if (!token) {

@@ -41,9 +41,12 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Task not found or unauthorized' });
     }
 
-    const updatedTask = await Task.findByIdAndUpdate(
-      req.params.id,
-      req.body,
+    // Sanitize update payload - never allow userId to be changed
+    const { userId, ...sanitizedUpdate } = req.body;
+    
+    const updatedTask = await Task.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId }, // Enforce ownership in query
+      sanitizedUpdate,
       { new: true }
     );
     res.json(updatedTask);
@@ -57,13 +60,16 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     console.log('Deleting task:', req.params.id, 'for user:', req.userId);
-    const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
     
-    if (!task) {
+    const deletedTask = await Task.findOneAndDelete({ 
+      _id: req.params.id, 
+      userId: req.userId 
+    });
+    
+    if (!deletedTask) {
       return res.status(404).json({ error: 'Task not found or unauthorized' });
     }
 
-    await Task.findByIdAndDelete(req.params.id);
     res.json({ message: 'Task deleted successfully' });
   } catch (err) {
     console.error('Error deleting task:', err);
