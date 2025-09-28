@@ -15,11 +15,20 @@ app.use(cors());
 const connectDB = async () => {
   try {
     console.log('Connecting to MongoDB...');
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('MongoDB connected successfully');
+    console.log('MongoDB URI format check:', process.env.MONGO_URI ? 'URI provided' : 'URI missing');
+    
+    const connectionOptions = {
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+      socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+      maxPoolSize: 1, // Single connection for Replit environment
+    };
+    
+    await mongoose.connect(process.env.MONGO_URI, connectionOptions);
+    console.log('✅ MongoDB connected successfully');
   } catch (err) {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
+    console.error('❌ MongoDB connection error:', err.message);
+    console.log('🔄 Starting server without MongoDB connection (will retry on requests)');
+    // Don't exit - continue running server
   }
 };
 
@@ -27,22 +36,45 @@ const connectDB = async () => {
 const initializeFirebase = () => {
   try {
     console.log('Initializing Firebase Admin SDK...');
+    console.log('Firebase env check:', {
+      projectId: process.env.FIREBASE_PROJECT_ID ? 'provided' : 'missing',
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL ? 'provided' : 'missing',
+      privateKey: process.env.FIREBASE_PRIVATE_KEY ? 'provided' : 'missing'
+    });
     
     // Check if Firebase is already initialized
     if (admin.apps.length === 0) {
+      // More robust private key handling
+      let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+      if (privateKey) {
+        // Handle different newline formats
+        privateKey = privateKey.replace(/\\n/g, '\n')
+                              .replace(/\\\n/g, '\n')
+                              .trim();
+                              
+        // Ensure proper PEM format
+        if (!privateKey.startsWith('-----BEGIN PRIVATE KEY-----')) {
+          throw new Error('Private key must start with -----BEGIN PRIVATE KEY-----');
+        }
+        if (!privateKey.endsWith('-----END PRIVATE KEY-----')) {
+          throw new Error('Private key must end with -----END PRIVATE KEY-----');
+        }
+      }
+      
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          privateKey: privateKey,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL
         })
       });
     }
     
-    console.log('Firebase Admin SDK initialized successfully');
+    console.log('✅ Firebase Admin SDK initialized successfully');
   } catch (err) {
-    console.error('Firebase initialization error:', err);
-    process.exit(1);
+    console.error('❌ Firebase initialization error:', err.message);
+    console.log('🔄 Starting server without Firebase authentication (auth routes will be disabled)');
+    // Don't exit - continue running server without Firebase auth
   }
 };
 

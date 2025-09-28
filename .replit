@@ -51,13 +51,13 @@ waitForPort = 3000
 outputType = "console"
 
 [[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
 localPort = 5000
 externalPort = 80
 
 [[ports]]
 localPort = 38795
-externalPort = 3000
-
-[[ports]]
-localPort = 3000
 externalPort = 3000
