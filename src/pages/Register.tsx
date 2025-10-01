@@ -83,7 +83,7 @@ const Register = () => {
       });
 
       navigate('/dashboard');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Registration error:', error);
       toast({
         title: 'Registration Failed',

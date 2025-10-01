@@ -5,6 +5,9 @@ import {
   TrendingUp, 
   CheckSquare,
 } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '../../store/store';
+import { logout } from '../../store/slices/authSlice';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -13,6 +16,13 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutProps) => {
+  const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
+
   const tabs = [
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'matrix', label: 'Priority Matrix', icon: Target },
@@ -45,7 +55,15 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
             </div>
           </div>
 
-
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-muted-foreground">Welcome, {user?.displayName || 'User'}</span>
+            <button
+              onClick={handleLogout}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
         
         {/* Mobile Navigation */}

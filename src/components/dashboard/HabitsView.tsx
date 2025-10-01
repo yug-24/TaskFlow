@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store/store';
-import { addHabit, updateHabit, deleteHabit, incrementHabit } from '@/store/slices/habitsSlice';
+import { RootState, AppDispatch } from '@/store/store';
+import { createHabit, updateHabit, deleteHabit } from '@/store/slices/habitsSlice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, 
   Flame, 
@@ -45,9 +44,8 @@ ChartJS.register(
 );
 
 const HabitsView = () => {
-  const dispatch = useDispatch();
-  const { habits } = useSelector((state: RootState) => state.habits);
-  const { toast } = useToast();
+  const dispatch = useDispatch<AppDispatch>();
+  const { habits, loading, error } = useSelector((state: RootState) => state.habits);
   
   const [isAddingHabit, setIsAddingHabit] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -59,22 +57,12 @@ const HabitsView = () => {
 
   const handleAddHabit = () => {
     if (!newHabit.name.trim()) {
-      toast({
-        title: 'Validation Error',
-        description: 'Habit name is required',
-        variant: 'destructive',
-      });
       return;
     }
 
-    dispatch(addHabit(newHabit));
+    dispatch(createHabit(newHabit));
     setNewHabit({ name: '', description: '', target: 1 });
     setIsAddingHabit(false);
-    
-    toast({
-      title: 'Habit Added',
-      description: 'Your new habit has been created successfully',
-    });
   };
 
   const handleEditHabit = () => {
@@ -87,27 +75,10 @@ const HabitsView = () => {
     
     setEditingHabit(null);
     setNewHabit({ name: '', description: '', target: 1 });
-    
-    toast({
-      title: 'Habit Updated',
-      description: 'Your habit has been updated successfully',
-    });
   };
 
   const handleDeleteHabit = (id: string) => {
     dispatch(deleteHabit(id));
-    toast({
-      title: 'Habit Deleted',
-      description: 'Habit has been removed',
-    });
-  };
-
-  const handleIncrementHabit = (id: string) => {
-    dispatch(incrementHabit(id));
-    toast({
-      title: 'Progress Updated',
-      description: 'Great job! Keep building that streak!',
-    });
   };
 
   const startEditing = (habit: Habit) => {
@@ -250,6 +221,9 @@ const HabitsView = () => {
         </Dialog>
       </div>
 
+      {loading && <p>Loading habits...</p>}
+      {error && <p className="text-red-500">Error: {error}</p>}
+
       {/* Habits Grid */}
       <div className="grid lg:grid-cols-2 gap-6 mb-8">
         {habits.map((habit) => (
@@ -324,7 +298,6 @@ const HabitsView = () => {
 
               {/* Action Button */}
               <Button 
-                onClick={() => handleIncrementHabit(habit.id)}
                 disabled={habit.completed >= habit.target}
                 className={habit.completed >= habit.target ? "btn-glass" : "btn-hero"}
                 size="sm"

@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { RootState } from '@/store/store';
-import { addTask, updateTask, deleteTask, toggleTask, setFilter } from '@/store/slices/tasksSlice';
+import { createTask, updateTask, deleteTask, toggleTask, setFilter } from '@/store/slices/tasksSlice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,7 +45,7 @@ const TasksView = () => {
       return;
     }
 
-    dispatch(addTask({ ...newTask, completed: false }));
+    dispatch(createTask({ ...newTask, completed: false }));
     setNewTask({
       title: '',
       description: '',
@@ -277,86 +277,13 @@ const TasksView = () => {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Dialog 
-                      open={editingTask?.id === task.id} 
-                      onOpenChange={(open) => !open && setEditingTask(null)}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startEditing(task)}
                     >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEditing(task)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="card-professional">
-                        <DialogHeader>
-                          <DialogTitle>Edit Task</DialogTitle>
-                          <DialogDescription>
-                            Update task details and priority
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-sm font-medium">Title</label>
-                            <Input
-                              value={newTask.title}
-                              onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-                              placeholder="Enter task title..."
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Description</label>
-                            <Textarea
-                              value={newTask.description}
-                              onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                              placeholder="Enter task description..."
-                              className="mt-1"
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-sm font-medium">Priority</label>
-                              <Select
-                                value={newTask.priority}
-                                onValueChange={(value: Task['priority']) => 
-                                  setNewTask(prev => ({ ...prev, priority: value }))
-                                }
-                              >
-                                <SelectTrigger className="mt-1">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="urgent-important">Urgent & Important</SelectItem>
-                                  <SelectItem value="urgent-not-important">Urgent</SelectItem>
-                                  <SelectItem value="not-urgent-important">Important</SelectItem>
-                                  <SelectItem value="not-urgent-not-important">Low Priority</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">Due Date</label>
-                              <Input
-                                type="date"
-                                value={newTask.dueDate}
-                                onChange={(e) => setNewTask(prev => ({ ...prev, dueDate: e.target.value }))}
-                                className="mt-1"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex justify-end space-x-2 pt-4">
-                            <Button variant="outline" onClick={() => setEditingTask(null)}>
-                              Cancel
-                            </Button>
-                            <Button onClick={handleEditTask} className="btn-hero">
-                              Update Task
-                            </Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                      <Edit className="h-4 w-4" />
+                    </Button>
 
                     <Button
                       variant="ghost"

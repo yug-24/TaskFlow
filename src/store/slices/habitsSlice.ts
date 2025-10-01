@@ -1,4 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import * as api from '../../lib/api';
 
 export interface Habit {
   id: string;
@@ -15,95 +16,70 @@ export interface Habit {
 interface HabitsState {
   habits: Habit[];
   loading: boolean;
+  error: string | null;
 }
 
 const initialState: HabitsState = {
-  habits: [
-    {
-      id: '1',
-      name: 'Read for 30 minutes',
-      description: 'Daily reading to improve knowledge',
-      target: 30,
-      completed: 25,
-      streak: 7,
-      bestStreak: 15,
-      createdAt: '2024-01-01',
-      lastCompleted: '2024-01-10',
-    },
-    {
-      id: '2',
-      name: 'Exercise',
-      description: 'Daily workout routine',
-      target: 1,
-      completed: 1,
-      streak: 3,
-      bestStreak: 10,
-      createdAt: '2024-01-01',
-      lastCompleted: '2024-01-10',
-    },
-    {
-      id: '3',
-      name: 'Meditate',
-      description: 'Daily meditation for mindfulness',
-      target: 15,
-      completed: 0,
-      streak: 0,
-      bestStreak: 5,
-      createdAt: '2024-01-01',
-    },
-  ],
+  habits: [],
   loading: false,
+  error: null,
 };
+
+// 🔥 Async thunks
+export const fetchHabits = createAsyncThunk('habits/fetchHabits', api.fetchHabits);
+
+export const createHabit = createAsyncThunk(
+  'habits/createHabit',
+  async (habit: Omit<Habit, 'id' | 'createdAt' | 'streak' | 'bestStreak' | 'completed'>) => {
+    return api.createHabit(habit);
+  }
+);
+
+export const updateHabit = createAsyncThunk(
+  'habits/updateHabit',
+  async ({ id, updates }: { id: string; updates: Partial<Habit> }) => {
+    return api.updateHabit(id, updates);
+  }
+);
+
+export const deleteHabit = createAsyncThunk('habits/deleteHabit', async (id: string) => {
+  await api.deleteHabit(id);
+  return id;
+});
 
 const habitsSlice = createSlice({
   name: 'habits',
   initialState,
-  reducers: {
-    addHabit: (state, action: PayloadAction<Omit<Habit, 'id' | 'createdAt' | 'streak' | 'bestStreak' | 'completed'>>) => {
-      const newHabit: Habit = {
-        ...action.payload,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        streak: 0,
-        bestStreak: 0,
-        completed: 0,
-      };
-      state.habits.push(newHabit);
-    },
-    updateHabit: (state, action: PayloadAction<{ id: string; updates: Partial<Habit> }>) => {
-      const { id, updates } = action.payload;
-      const habitIndex = state.habits.findIndex(habit => habit.id === id);
-      if (habitIndex !== -1) {
-        state.habits[habitIndex] = { ...state.habits[habitIndex], ...updates };
-      }
-    },
-    deleteHabit: (state, action: PayloadAction<string>) => {
-      state.habits = state.habits.filter(habit => habit.id !== action.payload);
-    },
-    incrementHabit: (state, action: PayloadAction<string>) => {
-      const habit = state.habits.find(habit => habit.id === action.payload);
-      if (habit && habit.completed < habit.target) {
-        habit.completed += 1;
-        if (habit.completed === habit.target) {
-          habit.streak += 1;
-          habit.bestStreak = Math.max(habit.bestStreak, habit.streak);
-          habit.lastCompleted = new Date().toISOString();
-        }
-      }
-    },
-    resetDailyProgress: (state) => {
-      state.habits.forEach(habit => {
-        habit.completed = 0;
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      // Fetch
+      .addCase(fetchHabits.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchHabits.fulfilled, (state, action) => {
+        state.loading = false;
+        state.habits = action.payload;
+      })
+      .addCase(fetchHabits.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to load habits';
+      })
+      // Create
+      .addCase(createHabit.fulfilled, (state, action) => {
+        state.habits.push(action.payload);
+      })
+      // Update
+      .addCase(updateHabit.fulfilled, (state, action) => {
+        const idx = state.habits.findIndex((h) => h.id === action.payload.id);
+        if (idx !== -1) state.habits[idx] = action.payload;
+      })
+      // Delete
+      .addCase(deleteHabit.fulfilled, (state, action) => {
+        state.habits = state.habits.filter((h) => h.id !== action.payload);
       });
-    },
   },
 });
 
-export const { 
-  addHabit, 
-  updateHabit, 
-  deleteHabit, 
-  incrementHabit, 
-  resetDailyProgress 
-} = habitsSlice.actions;
 export default habitsSlice.reducer;

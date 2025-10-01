@@ -1,4 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '@/store/store';
+import { fetchTasks } from '@/store/slices/tasksSlice';
+import { fetchHabits } from '@/store/slices/habitsSlice';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import TasksView from '@/components/dashboard/TasksView';
 import PriorityMatrix from '@/components/dashboard/PriorityMatrix';
@@ -7,6 +11,12 @@ import HabitsView from '@/components/dashboard/HabitsView';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('tasks');
+  const dispatch = useDispatch<AppDispatch>();
+
+  useEffect(() => {
+    dispatch(fetchTasks());
+    dispatch(fetchHabits());
+  }, [dispatch]);
 
   const renderContent = () => {
     switch (activeTab) {

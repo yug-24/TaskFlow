@@ -46,7 +46,7 @@ const Login = () => {
       });
 
       navigate('/dashboard');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login error:', error);
       toast({
         title: 'Sign In Failed',
