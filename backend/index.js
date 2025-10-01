@@ -11,8 +11,39 @@ dotenv.config(); // Load .env
 const app = express();
 
 // Middleware
-app.use(express.json());
-app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'http://localhost:5000',
+      'http://localhost:3000',
+      'http://127.0.0.1:5000',
+      process.env.FRONTEND_URL,
+      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+    ].filter(Boolean);
+    
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else if (process.env.NODE_ENV === 'development' && (origin.endsWith('.replit.dev') || origin.includes('localhost'))) {
+      callback(null, true);
+    } else if (process.env.NODE_ENV === 'production' && process.env.ALLOW_VERCEL_PREVIEW === 'true' && origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'), false);
+    }
+  },
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 
 // MongoDB Connection
 const connectDB = async () => {
@@ -110,33 +141,54 @@ app.use((err, req, res, next) => {
 // 404 handler
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 
-// Start server
-const PORT = process.env.PORT || 3000;
-
-const startServer = async () => {
+// Initialize connections
+const initializeServices = async () => {
   await connectDB();
   initializeFirebase();
-
-  app.listen(PORT, () => {
-    const networkInterfaces = os.networkInterfaces();
-    let networkURL = '';
-
-    for (const iface of Object.values(networkInterfaces)) {
-      for (const config of iface) {
-        if (config.family === 'IPv4' && !config.internal) {
-          networkURL = `http://${config.address}:${PORT}`;
-        }
-      }
-    }
-
-    console.log(`\n🚀 TaskFlow Pro Backend running!`);
-    console.log(`📍 Local:   http://localhost:${PORT}`);
-    if (networkURL) console.log(`🌐 Network: ${networkURL}`);
-    console.log(`📊 Health:  http://localhost:${PORT}/health`);
-    console.log(`📋 Tasks API: http://localhost:${PORT}/api/tasks`);
-    console.log(`🎯 Habits API: http://localhost:${PORT}/api/habits\n`);
-  });
 };
 
-startServer();
+// Initialize services on startup
+let initialized = false;
+const ensureInitialized = async () => {
+  if (!initialized) {
+    await initializeServices();
+    initialized = true;
+  }
+};
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  
+  const startServer = async () => {
+    await ensureInitialized();
+
+    app.listen(PORT, () => {
+      const networkInterfaces = os.networkInterfaces();
+      let networkURL = '';
+
+      for (const iface of Object.values(networkInterfaces)) {
+        for (const config of iface) {
+          if (config.family === 'IPv4' && !config.internal) {
+            networkURL = `http://${config.address}:${PORT}`;
+          }
+        }
+      }
+
+      console.log(`\n🚀 TaskFlow Pro Backend running!`);
+      console.log(`📍 Local:   http://localhost:${PORT}`);
+      if (networkURL) console.log(`🌐 Network: ${networkURL}`);
+      console.log(`📊 Health:  http://localhost:${PORT}/health`);
+      console.log(`📋 Tasks API: http://localhost:${PORT}/api/tasks`);
+      console.log(`🎯 Habits API: http://localhost:${PORT}/api/habits\n`);
+    });
+  };
+
+  startServer();
+}
+
+export default async (req, res) => {
+  await ensureInitialized();
+  return app(req, res);
+};
 

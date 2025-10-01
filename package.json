@@ -9,6 +9,8 @@
     "dev:fullstack": "concurrently \"npm run backend\" \"npm run dev\"",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "vercel-build": "npm run build",
+    "start": "node backend/index.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },

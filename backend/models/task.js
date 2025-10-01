@@ -3,11 +3,13 @@ import mongoose from 'mongoose';
 const taskSchema = new mongoose.Schema({
   userId: {
     type: String,
-    required: true
+    required: true,
+    index: true
   },
   title: {
     type: String,
-    required: true
+    required: true,
+    maxlength: 500
   },
   completed: {
     type: Boolean,
@@ -19,5 +21,7 @@ const taskSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+taskSchema.index({ userId: 1, createdAt: -1 });
 
 export default mongoose.model('Task', taskSchema);

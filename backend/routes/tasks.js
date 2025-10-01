@@ -3,6 +3,37 @@ import Task from '../models/task.js';
 
 const router = express.Router();
 
+const validateTaskInput = (req, res, next) => {
+  const { title, completed, deadline } = req.body;
+  
+  if (req.method === 'POST' && (!title || typeof title !== 'string' || title.trim().length === 0)) {
+    return res.status(400).json({ error: 'Task title is required and must be a non-empty string' });
+  }
+  
+  if (title && (typeof title !== 'string' || title.length > 500)) {
+    return res.status(400).json({ error: 'Task title must be a string less than 500 characters' });
+  }
+  
+  if (completed !== undefined && typeof completed !== 'boolean') {
+    return res.status(400).json({ error: 'Completed must be a boolean' });
+  }
+  
+  if (deadline !== undefined && deadline !== null) {
+    const deadlineDate = new Date(deadline);
+    if (isNaN(deadlineDate.getTime())) {
+      return res.status(400).json({ error: 'Deadline must be a valid date' });
+    }
+  }
+  
+  const allowedFields = ['title', 'completed', 'deadline'];
+  const extraFields = Object.keys(req.body).filter(key => !allowedFields.includes(key) && key !== 'userId');
+  if (extraFields.length > 0) {
+    return res.status(400).json({ error: `Invalid fields: ${extraFields.join(', ')}` });
+  }
+  
+  next();
+};
+
 // GET all tasks for the authenticated user
 router.get('/', async (req, res) => {
   try {
@@ -16,7 +47,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST create a new task
-router.post('/', async (req, res) => {
+router.post('/', validateTaskInput, async (req, res) => {
   try {
     console.log('Creating task for user:', req.userId, req.body);
     const task = new Task({
@@ -32,7 +63,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update a task
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateTaskInput, async (req, res) => {
   try {
     console.log('Updating task:', req.params.id, 'for user:', req.userId);
     const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
@@ -52,6 +83,26 @@ router.put('/:id', async (req, res) => {
     res.json(updatedTask);
   } catch (err) {
     console.error('Error updating task:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH toggle task completion status
+router.patch('/:id/toggle', async (req, res) => {
+  try {
+    console.log('Toggling task:', req.params.id, 'for user:', req.userId);
+    
+    const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
+    
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found or unauthorized' });
+    }
+
+    task.completed = !task.completed;
+    const updatedTask = await task.save();
+    res.json(updatedTask);
+  } catch (err) {
+    console.error('Error toggling task:', err);
     res.status(500).json({ error: err.message });
   }
 });

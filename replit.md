@@ -44,6 +44,16 @@ The project uses Firebase for authentication with the following services:
 - Project ID: taskflow-4821b
 
 ## Recent Changes
+- **2025-10-01**: Production-ready security and deployment improvements
+  - Added comprehensive input validation with field whitelisting for Tasks and Habits
+  - Improved CORS security with proper origin validation
+  - Added MongoDB indexes on userId and createdAt for better performance
+  - Implemented PATCH /api/tasks/:id/toggle endpoint for task completion toggling
+  - Configured backend for serverless deployment (Vercel compatible)
+  - Created vercel.json with proper routing for frontend and backend
+  - Added .env.example for environment variable documentation
+  - Enhanced data type validation for all CRUD operations
+  - Set up proper production build configuration
 - **2025-10-01**: GitHub import configured for Replit environment
   - Installed Node.js 20 and all frontend/backend dependencies
   - Configured Vite for port 5000 with allowedHosts: true for proxy compatibility

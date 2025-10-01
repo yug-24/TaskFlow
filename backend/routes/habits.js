@@ -3,6 +3,34 @@ import Habit from '../models/habit.js';
 
 const router = express.Router();
 
+const validateHabitInput = (req, res, next) => {
+  const { name, streak, progress } = req.body;
+  
+  if (req.method === 'POST' && (!name || typeof name !== 'string' || name.trim().length === 0)) {
+    return res.status(400).json({ error: 'Habit name is required and must be a non-empty string' });
+  }
+  
+  if (name && (typeof name !== 'string' || name.length > 200)) {
+    return res.status(400).json({ error: 'Habit name must be a string less than 200 characters' });
+  }
+  
+  if (streak !== undefined && (typeof streak !== 'number' || streak < 0 || !Number.isInteger(streak))) {
+    return res.status(400).json({ error: 'Streak must be a non-negative integer' });
+  }
+  
+  if (progress !== undefined && (!Array.isArray(progress) || !progress.every(p => !isNaN(new Date(p).getTime())))) {
+    return res.status(400).json({ error: 'Progress must be an array of valid dates' });
+  }
+  
+  const allowedFields = ['name', 'streak', 'progress'];
+  const extraFields = Object.keys(req.body).filter(key => !allowedFields.includes(key) && key !== 'userId');
+  if (extraFields.length > 0) {
+    return res.status(400).json({ error: `Invalid fields: ${extraFields.join(', ')}` });
+  }
+  
+  next();
+};
+
 // GET all habits for the authenticated user
 router.get('/', async (req, res) => {
   try {
@@ -16,7 +44,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST create a new habit
-router.post('/', async (req, res) => {
+router.post('/', validateHabitInput, async (req, res) => {
   try {
     console.log('Creating habit for user:', req.userId, req.body);
     const habit = new Habit({
@@ -32,7 +60,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update a habit
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateHabitInput, async (req, res) => {
   try {
     console.log('Updating habit:', req.params.id, 'for user:', req.userId);
     const habit = await Habit.findOne({ _id: req.params.id, userId: req.userId });
